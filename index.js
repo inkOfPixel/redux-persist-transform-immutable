@@ -1,11 +1,25 @@
-var Immutable = require('immutable')
-var Serialize = require('remotedev-serialize')
+var transit = require('transit-immutable-js')
 var reduxPersist = require('redux-persist')
 
 module.exports = function (config) {
   config = config || {}
 
-  var serializer =  Serialize.immutable(Immutable, config.records)
+  var transitInstance = transit
+  if (config.records) {
+    transitInstance = transit.withRecords(config.records)
+  }
 
-  return reduxPersist.createTransform(serializer.stringify, serializer.parse, config)
+  return reduxPersist.createTransform(
+    function(state){
+      return transitInstance.toJSON(state)
+    },
+    function(raw){
+	try {
+	    return transitInstance.fromJSON(raw)
+	} catch (e) {
+	    return raw;
+	}
+    },
+    config
+  )
 }
